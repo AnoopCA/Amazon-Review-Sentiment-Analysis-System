@@ -5,7 +5,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-st.title("SENTIMENT ANALYSIS SYSTEM")
+st.title("AMAZON REVIEW SENTIMENT ANALYSIS SYSTEM")
 choice = st.sidebar.selectbox("MENU", ("HOME", "ANALYSIS", "RESULTS"))
 
 if choice == "HOME":
