@@ -12,7 +12,9 @@ d = service.get(spreadsheetId="1uK4w1ExNk0gi-QwjzbANceczkpywBVzPpURQvNsZq24", ra
 # Read the google sheet table
 data = d['values']
 df = pd.DataFrame(data=data[1:], columns=data[0])
+# Initialize sentimental model
 sentimentModel = SentimentIntensityAnalyzer()
+# Predict sentiment polarity for each of the reviews and update the dataframe  with the sentiment polarity
 for i in range(len(df)):
     txt = df._get_value(i, "Text")
     pred = sentimentModel.polarity_scores(txt)
