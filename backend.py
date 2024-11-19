@@ -26,6 +26,7 @@ for i in range(len(df)):
         data[i+1].append("Neutral")
 
 h = {'values':data}
+# Update the google sheet with the updated dataframe
 service.update(spreadsheetId='1uK4w1ExNk0gi-QwjzbANceczkpywBVzPpURQvNsZq24', 
                range="A:D", valueInputOption="USER_ENTERED", body=h).execute()
 

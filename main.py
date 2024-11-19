@@ -1,3 +1,4 @@
+# Import necessary libraries
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -5,9 +6,12 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
+# Add title
 st.title("AMAZON REVIEW SENTIMENT ANALYSIS SYSTEM")
+# Add listbox in the sidebar 
 choice = st.sidebar.selectbox("MENU", ("HOME", "ANALYSIS", "RESULTS"))
 
+# Display HOME section
 if choice == "HOME":
     st.image("https://miro.medium.com/v2/1*_JW1JaMpK_fVGld8pd1_JQ.gif")
     st.write("")
@@ -15,6 +19,7 @@ if choice == "HOME":
     st.markdown("##### • The application predicts sentiment in three categories: Positive, Negative, and Neutral.")
     st.markdown("##### • It also visualizes the results, incorporating factors such as age, gender, language, and location.")
 
+# Display ANALYSIS section
 elif choice == "ANALYSIS":
     gsid = st.text_input("Enter you Google Sheet ID")
     rng = st.text_input("Enter range between first column and last column")
