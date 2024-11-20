@@ -26,6 +26,7 @@ elif choice == "ANALYSIS":
     col = st.text_input("Enter the column name that is to be analyzed")
     btn = st.button("Analyze")
     if btn:
+        # Build the Google Sheets API service and fetch data from the specified range in the Google Sheet
         if 'cred' not in st.session_state:
             f = InstalledAppFlow.from_client_secrets_file("key.json",["https://www.googleapis.com/auth/spreadsheets"])
             st.session_state['cred'] = f.run_local_server(port=0)
@@ -34,8 +35,10 @@ elif choice == "ANALYSIS":
             data = d['values']
             df = pd.DataFrame(data=data[1:], columns=data[0])
 
+            # Initialize the Sentiment Intensity Analyzer
             sentimentModel = SentimentIntensityAnalyzer()
             l = []
+            # Perform sentiment analysis on the specified column
             for i in range(len(df)):
                 txt = df._get_value(i, col)
                 pred = sentimentModel.polarity_scores(txt)
@@ -46,6 +49,7 @@ elif choice == "ANALYSIS":
                 else:
                     l.append("Neutral")
 
+            # Add the sentiment results to a new column in the DataFrame
             df["Sentiment"] = l
             df.to_csv("results.csv", index=False)
             st.subheader("The analysis results are saved by the name 'results.csv'")
