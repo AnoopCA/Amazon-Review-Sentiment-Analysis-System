@@ -53,12 +53,14 @@ elif choice == "ANALYSIS":
             df["Sentiment"] = l
             df.to_csv("results.csv", index=False)
             st.subheader("The analysis results are saved by the name 'results.csv'")
-
+# Display RESULTS section
 elif choice=="RESULTS":
+    # Read the results from the csv file
     df = pd.read_csv("results.csv")
     plot_choice = st.selectbox("Choose Visualization", ("NONE", "PIE CHART", "HISTOGRAM", "SCATTER PLOT"))
     st.dataframe(df)
     
+    # Draw plots based on the users selection
     if plot_choice == "PIE CHART":
         posper = (len(df[df['Sentiment']=="Positive"])/len(df)) * 100
         negper = (len(df[df['Sentiment']=="Negative"])/len(df)) * 100
