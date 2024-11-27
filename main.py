@@ -61,6 +61,7 @@ elif choice=="RESULTS":
     st.dataframe(df)
     
     # Draw plots based on the users selection
+    # Draw Pie chart
     if plot_choice == "PIE CHART":
         posper = (len(df[df['Sentiment']=="Positive"])/len(df)) * 100
         negper = (len(df[df['Sentiment']=="Negative"])/len(df)) * 100
@@ -68,12 +69,14 @@ elif choice=="RESULTS":
         fig = px.pie(values=[posper, negper, neuper], names=['Positive', 'Negative', 'Neutral'])
         st.plotly_chart(fig)
     
+    # Draw Histogram
     elif plot_choice == "HISTOGRAM":
         k = st.selectbox("Choose column", df.columns)
         if k:
             fig = px.histogram(x=df[k], color=df['Sentiment'])
             st.plotly_chart(fig)
     
+    #Draw Scatter plot
     elif plot_choice == "SCATTER PLOT":
         k = st.text_input("Enter the continous column name")
         if k:
