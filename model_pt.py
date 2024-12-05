@@ -11,22 +11,22 @@ import nltk
 from nltk.tokenize import word_tokenize
 nltk.download('punkt')
 
-# Set device
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Set device - Tensorflow is unable to access GPU, issue related to LSTM layer
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyperparameters
-MAX_WORDS = 60  # Vocabulary size
-MAX_SEQ_LENGTH = 35  # Maximum sequence length
-EMBEDDING_DIM = 32  # Dimension of word embeddings
-LSTM_UNITS = 4  # Number of LSTM units
-ATTENTION_UNITS = 4  # Dimension of attention mechanism
-DROPOUT_RATE = 0.5  # Dropout rate
+MAX_WORDS = 350000 #6575 #11313 #20000 # Vocabulary size (60% of total number of words works)
+MAX_SEQ_LENGTH = 128 #35 #350  # Maximum sequence length
+EMBEDDING_DIM = 128 #32 #128  # Dimension of word embeddings
+LSTM_UNITS = 128 #16 #128  # Number of LSTM units
+ATTENTION_UNITS = 64 #8 #64  # Dimension of attention mechanism
+DROPOUT_RATE = 0.25 #0.5  # Dropout rate
 NUM_CLASSES = 5  # Sentiment score range
-BATCH_SIZE = 4
-EPOCHS = 2
+BATCH_SIZE = 512 #64
+EPOCHS = 2 #10
 
 # Load dataset
-dataset = pd.read_csv(r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Data\amazon_reviews_small.csv")
+dataset = pd.read_csv(r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Data\amazon_reviews.csv")
 texts = dataset['Text']
 sentiment_scores = dataset['Score'] - 1  # Scores as 0 to 4
 
@@ -48,14 +48,18 @@ for text in texts:
 sequences = [[word_to_idx.get(token, 0) for token in tokens] for tokens in tokenized_texts]
 sequences = [torch.tensor(seq[:MAX_SEQ_LENGTH]) for seq in sequences]
 padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0)
-padded_sequences = padded_sequences[:, :MAX_SEQ_LENGTH]
+padded_sequences = padded_sequences[:, :MAX_SEQ_LENGTH].to(device)
 
 # One-hot encode labels
 lb = LabelBinarizer()
-y = torch.tensor(lb.fit_transform(sentiment_scores), dtype=torch.float32)
+y = torch.tensor(lb.fit_transform(sentiment_scores), dtype=torch.float32).to(device)
 
 # Train-test split
 X_train, X_val, y_train, y_val = train_test_split(padded_sequences, y, test_size=0.2, random_state=42)
+X_train = X_train.to(device)
+X_val = X_val.to(device)
+y_train = y_train.to(device)
+y_val = y_val.to(device)
 
 # Dataset and DataLoader
 class SentimentDataset(Dataset):
@@ -67,7 +71,7 @@ class SentimentDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+        return self.X[idx].to(device), self.y[idx].to(device)
 
 train_dataset = SentimentDataset(X_train, y_train)
 val_dataset = SentimentDataset(X_val, y_val)
@@ -110,7 +114,7 @@ class SentimentModel(nn.Module):
         output = self.fc(context_vector)
         return output
 
-model = SentimentModel() #.to(device)
+model = SentimentModel().to(device)
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -121,7 +125,7 @@ for epoch in range(EPOCHS):
     model.train()
     train_loss = 0
     for X_batch, y_batch in train_loader:
-        #X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
 
         optimizer.zero_grad()
         outputs = model(X_batch)
@@ -138,7 +142,7 @@ model.eval()
 val_loss = 0
 with torch.no_grad():
     for X_batch, y_batch in val_loader:
-        #X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
         outputs = model(X_batch)
         loss = criterion(outputs, y_batch.argmax(dim=1))
         val_loss += loss.item()
