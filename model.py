@@ -7,26 +7,29 @@ from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 from torch.nn.utils.rnn import pad_sequence
+import time
 import nltk
 from nltk.tokenize import word_tokenize
 nltk.download('punkt')
 
+start_time = time.time()
 # Set device - Tensorflow is unable to access GPU, issue related to LSTM layer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 # Hyperparameters
-MAX_WORDS = 350000 #6575 #11313 #20000 # Vocabulary size (60% of total number of words works)
+MAX_WORDS = 56152 #56152 #6575 #11313 #20000 # Vocabulary size (60% of total number of words works)
 MAX_SEQ_LENGTH = 128 #35 #350  # Maximum sequence length
 EMBEDDING_DIM = 128 #32 #128  # Dimension of word embeddings
 LSTM_UNITS = 128 #16 #128  # Number of LSTM units
 ATTENTION_UNITS = 64 #8 #64  # Dimension of attention mechanism
-DROPOUT_RATE = 0.25 #0.5  # Dropout rate
+DROPOUT_RATE = 0.5  # Dropout rate
 NUM_CLASSES = 5  # Sentiment score range
 BATCH_SIZE = 512 #64
 EPOCHS = 2 #10
 
 # Load dataset
-dataset = pd.read_csv(r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Data\amazon_reviews.csv")
+dataset = pd.read_csv(r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Data\amazon_reviews_preprocessed.csv")
 texts = dataset['Text']
 sentiment_scores = dataset['Score'] - 1  # Scores as 0 to 4
 
@@ -148,3 +151,10 @@ with torch.no_grad():
         val_loss += loss.item()
 
     print(f"Validation Loss: {val_loss/len(val_loader):.4f}")
+
+# Track and display the processing time
+end_time = time.time()
+execution_time = end_time - start_time
+hours, remainder = divmod(execution_time, 3600)
+minutes, seconds = divmod(remainder, 60)
+print(f"Execution time: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
