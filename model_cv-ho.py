@@ -21,27 +21,76 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Hyperparameters
 MAX_WORDS = 129996 # Vocabulary size
 NUM_CLASSES = 5  # Sentiment score range
-EPOCHS = 4
+EPOCHS = 10
 MODEL_SAVE_FREQ = 1
-MODEL_NUM = 6
+MODEL_NUM = 7
+HYPEROPT_MAX_EVALS = 5
 
 # Hyperparameter Search Space using hyperopt
 space = {
-    'learning_rate': hp.loguniform('learning_rate', np.log(1e-5), np.log(0.1)),  # Loguniform distribution for learning rate
-    'max_seq_length': scope.int(hp.quniform('max_seq_length', 64, 512, 16)), # Maximum sequence length
-    'embedding_dim': scope.int(hp.quniform('embedding_dim', 64, 512, 16)), # Dimension of word embeddings
-    'lstm_units': scope.int(hp.quniform('lstm_units', 1, 128, 1)), # Number of LSTM units
+    'learning_rate': hp.loguniform('learning_rate', np.log(1e-6), np.log(0.0001)),  # Loguniform distribution for learning rate
+    'max_seq_length': scope.int(hp.quniform('max_seq_length', 32, 128, 16)), # Maximum sequence length
+    'embedding_dim': scope.int(hp.quniform('embedding_dim', 128, 384, 16)), # Dimension of word embeddings
+    'lstm_units': scope.int(hp.quniform('lstm_units', 1, 96, 1)), # Number of LSTM units
     'attention_units': scope.int(hp.quniform('attention_units', 1, 64, 1)), # Dimension of attention mechanism
     'dropout_rate': hp.uniform('dropout_rate', 0.1, 0.5),
-    'batch_size': scope.int(hp.quniform('batch_size', 32, 512, 64)),
+    'batch_size': scope.int(hp.quniform('batch_size', 32, 128, 64)),
 }
+
+# Dataset and DataLoader
+class SentimentDataset(Dataset):
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx].to(device), self.y[idx].to(device)
+    
+
+# Attention Layer
+class AttentionLayer(nn.Module):
+    def __init__(self, attention_units, LSTM_UNITS):
+        super(AttentionLayer, self).__init__()
+        self.W = nn.Linear(2 * LSTM_UNITS, attention_units)
+        self.V = nn.Linear(attention_units, 1)
+
+    def forward(self, hidden_states):
+        scores = self.V(torch.tanh(self.W(hidden_states)))
+        attention_weights = torch.softmax(scores, dim=1)
+        context_vector = torch.sum(attention_weights * hidden_states, dim=1)
+        return context_vector, attention_weights
+
+# Model Definition
+class SentimentModel(nn.Module):
+    def __init__(self, MAX_WORDS, EMBEDDING_DIM, DROPOUT_RATE, ATTENTION_UNITS, LSTM_UNITS):
+        super(SentimentModel, self).__init__()
+        self.embedding = nn.Embedding(MAX_WORDS, EMBEDDING_DIM, padding_idx=0)
+        self.lstm = nn.LSTM(EMBEDDING_DIM, LSTM_UNITS, num_layers=3, bidirectional=True, batch_first=True, dropout=DROPOUT_RATE)
+        self.attention = AttentionLayer(ATTENTION_UNITS, LSTM_UNITS)
+        self.fc = nn.Sequential(
+            nn.Linear(2 * LSTM_UNITS, 128),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT_RATE),
+            nn.Linear(128, NUM_CLASSES),
+            nn.Softmax(dim=-1)
+        )
+
+    def forward(self, x):
+        x = self.embedding(x)
+        lstm_out, _ = self.lstm(x)
+        context_vector, attention_weights = self.attention(lstm_out)
+        output = self.fc(context_vector)
+        return output
 
 # Objective function for hyperopt
 def objective(params):
     global train_loader, val_loader, model, criterion  # Use global variables where necessary
 
     # Update global parameters
-    global BATCH_SIZE, EMBEDDING_DIM, LSTM_UNITS, ATTENTION_UNITS, DROPOUT_RATE
+    global LEARNING_RATE, MAX_SEQ_LENGTH, EMBEDDING_DIM, LSTM_UNITS, ATTENTION_UNITS, DROPOUT_RATE, BATCH_SIZE
 
     # Extract parameters from space
     LEARNING_RATE = params['learning_rate']
@@ -88,15 +137,18 @@ def objective(params):
     y_train = y_train.to(device)
     y_val = y_val.to(device)
 
+    train_dataset = SentimentDataset(X_train, y_train)
+    val_dataset = SentimentDataset(X_val, y_val)
+
     # Update DataLoader with new batch size
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # Define the model
-    model = SentimentModel().to(device)
+    model = SentimentModel(MAX_WORDS, EMBEDDING_DIM, DROPOUT_RATE, ATTENTION_UNITS, LSTM_UNITS).to(device)
     
     # Optimizer and criterion
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     criterion = nn.CrossEntropyLoss()
     
     # Training loop
@@ -128,12 +180,7 @@ def objective(params):
 
 # Hyperopt search
 trials = Trials()
-best_params = fmin(
-    fn=objective,
-    space=space,
-    algo=tpe.suggest,
-    max_evals=20,  # Number of evaluations
-    trials=trials
-)
+best_params = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=HYPEROPT_MAX_EVALS, trials=trials)
 
 print("Best Hyperparameters:", best_params)
+
