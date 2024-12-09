@@ -8,25 +8,30 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 from torch.nn.utils.rnn import pad_sequence
 import time
+import timeit
 import nltk
 from nltk.tokenize import word_tokenize
+from hyperopt import fmin, tpe, hp, Trials
+from hyperopt.pyll import scope
 nltk.download('punkt')
 
-start_time = time.time()
 # Set device - Tensorflow is unable to access GPU, issue related to LSTM layer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
 
 # Hyperparameters
-MAX_WORDS = 56152 #56152 #6575 #11313 #20000 # Vocabulary size (60% of total number of words works)
-MAX_SEQ_LENGTH = 128 #35 #350  # Maximum sequence length
-EMBEDDING_DIM = 128 #32 #128  # Dimension of word embeddings
-LSTM_UNITS = 128 #16 #128  # Number of LSTM units
-ATTENTION_UNITS = 64 #8 #64  # Dimension of attention mechanism
-DROPOUT_RATE = 0.5  # Dropout rate
+MAX_WORDS = 129996 # Vocabulary size
 NUM_CLASSES = 5  # Sentiment score range
-BATCH_SIZE = 512 #64
-EPOCHS = 2 #10
+EPOCHS = 4
+MODEL_SAVE_FREQ = 1
+MODEL_NUM = 6
+
+LEARNING_RATE = 0.0001
+MAX_SEQ_LENGTH = 128 #350  # Maximum sequence length
+EMBEDDING_DIM = 128 #128  # Dimension of word embeddings
+LSTM_UNITS = 2 #128  # Number of LSTM units
+ATTENTION_UNITS = 1 #64  # Dimension of attention mechanism
+DROPOUT_RATE = 0.5 # Dropout rate
+BATCH_SIZE = 128 #64
 
 # Load dataset
 dataset = pd.read_csv(r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Data\amazon_reviews_preprocessed.csv")
@@ -58,7 +63,7 @@ lb = LabelBinarizer()
 y = torch.tensor(lb.fit_transform(sentiment_scores), dtype=torch.float32).to(device)
 
 # Train-test split
-X_train, X_val, y_train, y_val = train_test_split(padded_sequences, y, test_size=0.2, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(padded_sequences, y, test_size=0.2)
 X_train = X_train.to(device)
 X_val = X_val.to(device)
 y_train = y_train.to(device)
@@ -119,9 +124,11 @@ class SentimentModel(nn.Module):
 
 model = SentimentModel().to(device)
 
+start_time = timeit.default_timer()
+
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # Training loop
 for epoch in range(EPOCHS):
@@ -138,7 +145,13 @@ for epoch in range(EPOCHS):
 
         train_loss += loss.item()
 
-    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {train_loss/len(train_loader):.4f}")
+    loss_print = f"{train_loss/len(train_loader):.4f}"
+    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {loss_print}")
+    if (epoch+1) % MODEL_SAVE_FREQ == 0:
+        torch.save(model, f"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Models\model_pt_{MODEL_NUM}_epoch-{epoch+1}_loss-{loss_print}.pth")
+
+hours, minutes = divmod(int(timeit.default_timer() - start_time) // 60, 60)
+print(f"Training time: {hours:02}:{minutes:02}")
 
 # Validation
 model.eval()
@@ -151,10 +164,3 @@ with torch.no_grad():
         val_loss += loss.item()
 
     print(f"Validation Loss: {val_loss/len(val_loader):.4f}")
-
-# Track and display the processing time
-end_time = time.time()
-execution_time = end_time - start_time
-hours, remainder = divmod(execution_time, 3600)
-minutes, seconds = divmod(remainder, 60)
-print(f"Execution time: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
