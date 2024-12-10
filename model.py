@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 from torch.nn.utils.rnn import pad_sequence
+import pickle
 import time
 import timeit
 import nltk
@@ -21,17 +22,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Hyperparameters
 MAX_WORDS = 129996 # Vocabulary size
 NUM_CLASSES = 5  # Sentiment score range
-EPOCHS = 4
+EPOCHS = 3 #100
 MODEL_SAVE_FREQ = 1
-MODEL_NUM = 6
+MODEL_NUM = 8
 
-LEARNING_RATE = 0.0001
-MAX_SEQ_LENGTH = 128 #350  # Maximum sequence length
-EMBEDDING_DIM = 128 #128  # Dimension of word embeddings
-LSTM_UNITS = 2 #128  # Number of LSTM units
-ATTENTION_UNITS = 1 #64  # Dimension of attention mechanism
-DROPOUT_RATE = 0.5 # Dropout rate
-BATCH_SIZE = 128 #64
+LEARNING_RATE = 0.00002
+MAX_SEQ_LENGTH = 96 #350  # Maximum sequence length
+EMBEDDING_DIM = 256 #128  # Dimension of word embeddings
+LSTM_UNITS = 75 #128  # Number of LSTM units
+ATTENTION_UNITS = 12 #64  # Dimension of attention mechanism
+DROPOUT_RATE = 0.2 # Dropout rate
+BATCH_SIZE = 64
 
 # Load dataset
 dataset = pd.read_csv(r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Data\amazon_reviews_preprocessed.csv")
@@ -51,6 +52,11 @@ for text in texts:
         if token not in word_to_idx:
             word_to_idx[token] = len(word_to_idx)
             idx_to_word.append(token)
+
+# Save word_to_idx to a pickle file
+with open(r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Models\word_to_idx.pkl", "wb") as f:
+    pickle.dump(word_to_idx, f)
+print("word_to_idx saved!")
 
 # Prepare data
 sequences = [[word_to_idx.get(token, 0) for token in tokens] for tokens in tokenized_texts]

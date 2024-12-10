@@ -22,8 +22,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_WORDS = 129996 # Vocabulary size
 NUM_CLASSES = 5  # Sentiment score range
 EPOCHS = 10
-MODEL_SAVE_FREQ = 1
-MODEL_NUM = 7
+#MODEL_SAVE_FREQ = 1
+#MODEL_NUM = 7
 HYPEROPT_MAX_EVALS = 5
 
 # Hyperparameter Search Space using hyperopt
