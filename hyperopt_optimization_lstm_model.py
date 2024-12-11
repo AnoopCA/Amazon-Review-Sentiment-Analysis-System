@@ -15,7 +15,7 @@ from hyperopt import fmin, tpe, hp, Trials
 from hyperopt.pyll import scope
 nltk.download('punkt')
 
-# Set device - Tensorflow is unable to access GPU, issue related to LSTM layer
+# Set device - Tensorflow is unable to access GPU, issue related to LSTM layer. Hence used Pytorch.
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyperparameters
@@ -140,7 +140,7 @@ def objective(params):
     train_dataset = SentimentDataset(X_train, y_train)
     val_dataset = SentimentDataset(X_val, y_val)
 
-    # Update DataLoader with new batch size
+    # Update DataLoader with batch size and shuffling
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
