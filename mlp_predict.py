@@ -50,25 +50,27 @@ class SentimentModel(nn.Module):
         x = self.softmax(x)
         return x
 
-
 # Define the prediction function
-def predict_score(text, max_length=SEQ_LEN):
-    # Load tokenizer
-    tokenizer = tiktoken.get_encoding("cl100k_base")
-    # Load the saved model
-    model_path = r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Models\model_pt_8_epoch-50_loss-1.0903.pth"
-    model = torch.load(model_path, map_location=device).to(device)
-    model.eval()
-    with torch.no_grad():
-        # Tokenize and preprocess the input text
-        encoding = tokenizer.encode(text)
-        encoding = encoding[:max_length]  # Truncate to max_length
-        padding_length = max_length - len(encoding)
-        encoding = encoding + [0] * padding_length  # Pad with zeros
-        input_tensor = torch.tensor([encoding]).to(device)  # Add batch dimension
-        outputs = model(input_tensor)
-        pred = torch.argmax(outputs, dim=1).item()  # Get the class with the highest probability
-    return pred + 1 # Add 1 to match original label range
+class Sentiment_Predict:
+    def __init__(self):
+        # Load tokenizer
+        self.tokenizer = tiktoken.get_encoding("cl100k_base")
+        # Load the saved model
+        model_path = r"D:\ML_Projects\Amazon-Review-Sentiment-Analysis-System\Models\model_pt_8_epoch-50_loss-1.0903.pth"
+        self.model = torch.load(model_path, map_location=device).to(device)
+        self.model.eval()
+
+    def predict_score(self, text, max_length=SEQ_LEN):
+        with torch.no_grad():
+            # Tokenize and preprocess the input text
+            encoding = self.tokenizer.encode(text)
+            encoding = encoding[:max_length]  # Truncate to max_length
+            padding_length = max_length - len(encoding)
+            encoding = encoding + [0] * padding_length  # Pad with zeros
+            input_tensor = torch.tensor([encoding]).to(device)  # Add batch dimension
+            outputs = self.model(input_tensor)
+            pred = torch.argmax(outputs, dim=1).item()  # Get the class with the highest probability
+        return pred + 1 # Add 1 to match original label range
 
 # Test text
 #text = "This product is amazing and exceeded my expectations!"

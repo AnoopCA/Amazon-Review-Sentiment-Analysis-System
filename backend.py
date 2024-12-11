@@ -2,7 +2,7 @@
 import pandas as pd
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from mlp_predict import SentimentModel, Sentiment_Predict
 
 # Setup permission in the account
 f = InstalledAppFlow.from_client_secrets_file("key.json",["https://www.googleapis.com/auth/spreadsheets"])
@@ -12,15 +12,16 @@ d = service.get(spreadsheetId="1uK4w1ExNk0gi-QwjzbANceczkpywBVzPpURQvNsZq24", ra
 # Read the google sheet table
 data = d['values']
 df = pd.DataFrame(data=data[1:], columns=data[0])
-# Initialize sentimental model
-sentimentModel = SentimentIntensityAnalyzer()
+# Initialize pretrained sentimental model
+score = Sentiment_Predict()
+
 # Predict sentiment polarity for each of the reviews and update the dataframe  with the sentiment polarity
 for i in range(len(df)):
     txt = df._get_value(i, "Text")
-    pred = sentimentModel.polarity_scores(txt)
-    if pred['compound'] > 0.5:
+    pred = score.predict_score(txt)
+    if pred > 3:
         data[i+1].append("Positive")
-    elif pred['compound'] < -0.5:
+    elif pred < 3:
         data[i+1].append("Negative")
     else:
         data[i+1].append("Neutral")
