@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from mlp_predict import SentimentModel, Sentiment_Predict
 
 # Add title
 st.title("AMAZON REVIEW SENTIMENT ANALYSIS SYSTEM")
@@ -17,7 +17,7 @@ if choice == "HOME":
     st.write("")
     st.markdown("##### • This system is a Natural Language Processing (NLP) application designed to analyze the sentiment of textual data.")
     st.markdown("##### • The application predicts sentiment in three categories: Positive, Negative, and Neutral.")
-    st.markdown("##### • It also visualizes the results, incorporating factors such as age, gender, language, and location.")
+    st.markdown("##### • It also visualizes the results.")
 
 # Display ANALYSIS section
 elif choice == "ANALYSIS":
@@ -35,16 +35,16 @@ elif choice == "ANALYSIS":
             data = d['values']
             df = pd.DataFrame(data=data[1:], columns=data[0])
 
-            # Initialize the Sentiment Intensity Analyzer
-            sentimentModel = SentimentIntensityAnalyzer()
+            # Initialize the Sentiment predict model
+            sentimentModel = Sentiment_Predict()
             l = []
             # Perform sentiment analysis on the specified column
             for i in range(len(df)):
                 txt = df._get_value(i, col)
-                pred = sentimentModel.polarity_scores(txt)
-                if pred['compound'] > 0.5:
+                pred = sentimentModel.predict_score(txt)
+                if pred > 3:
                     l.append("Positive")
-                elif pred['compound'] < -0.5:
+                elif pred < 3:
                     l.append("Negative")
                 else:
                     l.append("Neutral")
